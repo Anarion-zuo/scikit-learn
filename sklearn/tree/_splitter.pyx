@@ -68,6 +68,7 @@ cdef class Splitter:
         float64_t min_weight_leaf,
         object random_state,
         const int8_t[:] monotonic_cst,
+        int n_threads=1,
     ):
         """
         Parameters
@@ -104,6 +105,7 @@ cdef class Splitter:
         self.max_features = max_features
         self.min_samples_leaf = min_samples_leaf
         self.min_weight_leaf = min_weight_leaf
+        self.n_threads = n_threads
         self.random_state = random_state
         self.monotonic_cst = monotonic_cst
         self.with_monotonic_cst = monotonic_cst is not None
@@ -120,7 +122,8 @@ cdef class Splitter:
                              self.min_samples_leaf,
                              self.min_weight_leaf,
                              self.random_state,
-                             self.monotonic_cst), self.__getstate__())
+                             self.monotonic_cst,
+                             self.n_threads), self.__getstate__())
 
     cdef int init(
         self,
@@ -366,7 +369,7 @@ cdef inline int node_split_best(
         f_j += n_found_constants
         # f_j in the interval [n_total_constants, f_i[
         current_split.feature = features[f_j]
-        partitioner.sort_samples_and_feature_values(current_split.feature)
+        partitioner.sort_samples_and_feature_values(current_split.feature, splitter.n_threads)
         n_missing = partitioner.n_missing
         end_non_missing = end - n_missing
 

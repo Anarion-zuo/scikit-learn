@@ -22,6 +22,8 @@ from scipy.sparse import issparse
 
 from sklearn.tree._splitter cimport SplitRecord
 
+from cython.parallel cimport prange
+
 # Constant to switch between algorithm non zero value extract algorithm
 # in SparsePartitioner
 cdef float32_t EXTRACT_NNZ_SWITCH = 0.1
@@ -59,7 +61,7 @@ cdef class DensePartitioner:
         self.n_missing = 0
 
     cdef inline void sort_samples_and_feature_values(
-        self, intp_t current_feature
+        self, intp_t current_feature, int n_threads
     ) noexcept nogil:
         """Simultaneously sort based on the feature_values.
 
@@ -99,7 +101,7 @@ cdef class DensePartitioner:
         else:
             # When there are no missing values, we only need to copy the data into
             # feature_values
-            for i in range(self.start, self.end):
+            for i in prange(self.start, self.end, nogil=True, num_threads=n_threads):
                 feature_values[i] = X[samples[i], current_feature]
 
         sort(&feature_values[self.start], &samples[self.start], self.end - self.start - n_missing)
@@ -323,7 +325,8 @@ cdef class SparsePartitioner:
 
     cdef inline void sort_samples_and_feature_values(
         self,
-        intp_t current_feature
+        intp_t current_feature,
+        int n_threads,
     ) noexcept nogil:
         """Simultaneously sort based on the feature_values."""
         cdef:

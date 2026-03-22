@@ -41,6 +41,7 @@ from sklearn.utils import (
     compute_sample_weight,
     metadata_routing,
 )
+from sklearn.utils._openmp_helpers import _openmp_effective_n_threads
 from sklearn.utils._param_validation import Hidden, Interval, RealNotInt, StrOptions
 from sklearn.utils.multiclass import check_classification_targets
 from sklearn.utils.validation import (
@@ -124,6 +125,7 @@ class BaseDecisionTree(MultiOutputMixin, BaseEstimator, metaclass=ABCMeta):
         "min_impurity_decrease": [Interval(Real, 0.0, None, closed="left")],
         "ccp_alpha": [Interval(Real, 0.0, None, closed="left")],
         "monotonic_cst": ["array-like", None],
+        "n_threads": [None, Integral],
     }
 
     @abstractmethod
@@ -143,6 +145,7 @@ class BaseDecisionTree(MultiOutputMixin, BaseEstimator, metaclass=ABCMeta):
         class_weight=None,
         ccp_alpha=0.0,
         monotonic_cst=None,
+        n_threads=None,
     ):
         self.criterion = criterion
         self.splitter = splitter
@@ -157,6 +160,7 @@ class BaseDecisionTree(MultiOutputMixin, BaseEstimator, metaclass=ABCMeta):
         self.class_weight = class_weight
         self.ccp_alpha = ccp_alpha
         self.monotonic_cst = monotonic_cst
+        self.n_threads = n_threads
 
     def get_depth(self):
         """Return the depth of the decision tree.
@@ -210,7 +214,7 @@ class BaseDecisionTree(MultiOutputMixin, BaseEstimator, metaclass=ABCMeta):
             are no missing values, return None.
         """
         estimator_name = estimator_name or self.__class__.__name__
-        common_kwargs = dict(estimator_name=estimator_name, input_name="X")
+        common_kwargs = {"estimator_name": estimator_name, "input_name": "X"}
 
         if not self._support_missing_values(X):
             assert_all_finite(X, **common_kwargs)
@@ -239,6 +243,7 @@ class BaseDecisionTree(MultiOutputMixin, BaseEstimator, metaclass=ABCMeta):
         missing_values_in_feature_mask=None,
     ):
         random_state = check_random_state(self.random_state)
+        self._n_threads = _openmp_effective_n_threads(self.n_threads)
 
         if check_input:
             # Need to validate separately here.
@@ -247,10 +252,12 @@ class BaseDecisionTree(MultiOutputMixin, BaseEstimator, metaclass=ABCMeta):
 
             # _compute_missing_values_in_feature_mask will check for finite values and
             # compute the missing mask if the tree supports missing values
-            check_X_params = dict(
-                dtype=DTYPE, accept_sparse="csc", ensure_all_finite=False
-            )
-            check_y_params = dict(ensure_2d=False, dtype=None)
+            check_X_params = {
+                "dtype": DTYPE,
+                "accept_sparse": "csc",
+                "ensure_all_finite": False,
+            }
+            check_y_params = {"ensure_2d": False, "dtype": None}
             X, y = validate_data(
                 self, X, y, validate_separately=(check_X_params, check_y_params)
             )
@@ -355,8 +362,8 @@ class BaseDecisionTree(MultiOutputMixin, BaseEstimator, metaclass=ABCMeta):
 
         if len(y) != n_samples:
             raise ValueError(
-                "Number of labels=%d does not match number of samples=%d"
-                % (len(y), n_samples)
+                f"Number of labels={len(y)} does not match number of "
+                f"samples={n_samples}"
             )
 
         if sample_weight is not None:
@@ -406,8 +413,8 @@ class BaseDecisionTree(MultiOutputMixin, BaseEstimator, metaclass=ABCMeta):
             monotonic_cst = np.asarray(self.monotonic_cst)
             if monotonic_cst.shape[0] != X.shape[1]:
                 raise ValueError(
-                    "monotonic_cst has shape {} but the input data "
-                    "X has {} features.".format(monotonic_cst.shape[0], X.shape[1])
+                    f"monotonic_cst has shape {monotonic_cst.shape[0]} but the input "
+                    f"data X has {X.shape[1]} features."
                 )
             valid_constraints = np.isin(monotonic_cst, (-1, 0, 1))
             if not np.all(valid_constraints):
@@ -438,6 +445,7 @@ class BaseDecisionTree(MultiOutputMixin, BaseEstimator, metaclass=ABCMeta):
                 min_weight_leaf,
                 random_state,
                 monotonic_cst,
+                self._n_threads,
             )
 
         if is_classifier(self):
@@ -785,6 +793,12 @@ class DecisionTreeClassifier(ClassifierMixin, BaseDecisionTree):
         during fitting, ``random_state`` has to be fixed to an integer.
         See :term:`Glossary <random_state>` for details.
 
+    n_threads : int, default=None
+        Number of OpenMP threads to use for parts of the fitting procedure that
+        support OpenMP-based parallelism. ``None`` uses the default number of
+        threads (taking ``OMP_NUM_THREADS`` into account). ``n_threads=0`` is
+        invalid.
+
     max_leaf_nodes : int, default=None
         Grow a tree with ``max_leaf_nodes`` in best-first fashion.
         Best nodes are defined as relative reduction in impurity.
@@ -970,6 +984,7 @@ class DecisionTreeClassifier(ClassifierMixin, BaseDecisionTree):
         min_weight_fraction_leaf=0.0,
         max_features=None,
         random_state=None,
+        n_threads=None,
         max_leaf_nodes=None,
         min_impurity_decrease=0.0,
         class_weight=None,
@@ -987,6 +1002,7 @@ class DecisionTreeClassifier(ClassifierMixin, BaseDecisionTree):
             max_leaf_nodes=max_leaf_nodes,
             class_weight=class_weight,
             random_state=random_state,
+            n_threads=n_threads,
             min_impurity_decrease=min_impurity_decrease,
             monotonic_cst=monotonic_cst,
             ccp_alpha=ccp_alpha,
@@ -1201,6 +1217,12 @@ class DecisionTreeRegressor(RegressorMixin, BaseDecisionTree):
         during fitting, ``random_state`` has to be fixed to an integer.
         See :term:`Glossary <random_state>` for details.
 
+    n_threads : int, default=None
+        Number of OpenMP threads to use for parts of the fitting procedure that
+        support OpenMP-based parallelism. ``None`` uses the default number of
+        threads (taking ``OMP_NUM_THREADS`` into account). ``n_threads=0`` is
+        invalid.
+
     max_leaf_nodes : int, default=None
         Grow a tree with ``max_leaf_nodes`` in best-first fashion.
         Best nodes are defined as relative reduction in impurity.
@@ -1349,6 +1371,7 @@ class DecisionTreeRegressor(RegressorMixin, BaseDecisionTree):
         min_weight_fraction_leaf=0.0,
         max_features=None,
         random_state=None,
+        n_threads=None,
         max_leaf_nodes=None,
         min_impurity_decrease=0.0,
         ccp_alpha=0.0,
@@ -1374,6 +1397,7 @@ class DecisionTreeRegressor(RegressorMixin, BaseDecisionTree):
             max_features=max_features,
             max_leaf_nodes=max_leaf_nodes,
             random_state=random_state,
+            n_threads=n_threads,
             min_impurity_decrease=min_impurity_decrease,
             ccp_alpha=ccp_alpha,
             monotonic_cst=monotonic_cst,
@@ -1536,6 +1560,12 @@ class ExtraTreeClassifier(DecisionTreeClassifier):
     random_state : int, RandomState instance or None, default=None
         Used to pick randomly the `max_features` used at each split.
         See :term:`Glossary <random_state>` for details.
+
+    n_threads : int, default=None
+        Number of OpenMP threads to use for parts of the fitting procedure that
+        support OpenMP-based parallelism. ``None`` uses the default number of
+        threads (taking ``OMP_NUM_THREADS`` into account). ``n_threads=0`` is
+        invalid.
 
     max_leaf_nodes : int, default=None
         Grow a tree with ``max_leaf_nodes`` in best-first fashion.
@@ -1706,6 +1736,7 @@ class ExtraTreeClassifier(DecisionTreeClassifier):
         min_weight_fraction_leaf=0.0,
         max_features="sqrt",
         random_state=None,
+        n_threads=None,
         max_leaf_nodes=None,
         min_impurity_decrease=0.0,
         class_weight=None,
@@ -1724,6 +1755,7 @@ class ExtraTreeClassifier(DecisionTreeClassifier):
             class_weight=class_weight,
             min_impurity_decrease=min_impurity_decrease,
             random_state=random_state,
+            n_threads=n_threads,
             ccp_alpha=ccp_alpha,
             monotonic_cst=monotonic_cst,
         )
@@ -1834,6 +1866,12 @@ class ExtraTreeRegressor(DecisionTreeRegressor):
     random_state : int, RandomState instance or None, default=None
         Used to pick randomly the `max_features` used at each split.
         See :term:`Glossary <random_state>` for details.
+
+    n_threads : int, default=None
+        Number of OpenMP threads to use for parts of the fitting procedure that
+        support OpenMP-based parallelism. ``None`` uses the default number of
+        threads (taking ``OMP_NUM_THREADS`` into account). ``n_threads=0`` is
+        invalid.
 
     min_impurity_decrease : float, default=0.0
         A node will be split if this split induces a decrease of the impurity
@@ -1964,6 +2002,7 @@ class ExtraTreeRegressor(DecisionTreeRegressor):
         min_weight_fraction_leaf=0.0,
         max_features=1.0,
         random_state=None,
+        n_threads=None,
         min_impurity_decrease=0.0,
         max_leaf_nodes=None,
         ccp_alpha=0.0,
@@ -1980,6 +2019,7 @@ class ExtraTreeRegressor(DecisionTreeRegressor):
             max_leaf_nodes=max_leaf_nodes,
             min_impurity_decrease=min_impurity_decrease,
             random_state=random_state,
+            n_threads=n_threads,
             ccp_alpha=ccp_alpha,
             monotonic_cst=monotonic_cst,
         )

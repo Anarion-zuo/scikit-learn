@@ -79,6 +79,50 @@ CLF_TREES = {
     "ExtraTreeClassifier": ExtraTreeClassifier,
 }
 
+
+@pytest.mark.parametrize(
+    "Tree",
+    [
+        DecisionTreeClassifier,
+        DecisionTreeRegressor,
+        ExtraTreeClassifier,
+        ExtraTreeRegressor,
+    ],
+)
+@pytest.mark.parametrize("n_threads", [1, 2, 16, 64])
+def test_tree_n_threads_parameter(Tree, n_threads):
+    X, y = datasets.make_classification(
+        n_samples=50, n_features=5, n_informative=3, random_state=0
+    )
+    est = Tree(random_state=0, n_threads=n_threads)
+    est.fit(X, y)
+
+
+def test_tree_n_threads_zero_raises():
+    X, y = datasets.make_classification(
+        n_samples=50, n_features=5, n_informative=3, random_state=0
+    )
+    with pytest.raises(ValueError, match="n_threads = 0 is invalid"):
+        DecisionTreeClassifier(random_state=0, n_threads=0).fit(X, y)
+
+
+@pytest.mark.parametrize(
+    "Tree",
+    [
+        DecisionTreeClassifier,
+        ExtraTreeClassifier,
+    ],
+)
+def test_tree_results_equal_in_different_n_threads(Tree):
+    X, y = datasets.make_classification(
+        n_samples=100, n_features=10, n_informative=5, random_state=0
+    )
+    pred_1 = Tree(random_state=0, n_threads=1).fit(X, y).predict(X)
+    for n_threads in [2, 16, 64]:
+        pred = Tree(random_state=0, n_threads=n_threads).fit(X, y).predict(X)
+        assert_array_equal(pred_1, pred)
+
+
 REG_TREES = {
     "DecisionTreeRegressor": DecisionTreeRegressor,
     "ExtraTreeRegressor": ExtraTreeRegressor,
