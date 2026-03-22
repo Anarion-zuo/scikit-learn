@@ -905,6 +905,10 @@ class SelectFdr(_BaseFilter):
     alpha : float, default=5e-2
         The highest uncorrected p-value for features to keep.
 
+    fwe_control : {"bonf", "holm"}, default="bonf"
+        Family-wise error rate control method. Use "bonf" for Bonferroni
+        correction and "holm" for the Holm-Bonferroni method.
+
     Attributes
     ----------
     scores_ : array-like of shape (n_features,)
@@ -1040,16 +1044,34 @@ class SelectFwe(_BaseFilter):
     _parameter_constraints: dict = {
         **_BaseFilter._parameter_constraints,
         "alpha": [Interval(Real, 0, 1, closed="both")],
+        "fwe_control": [StrOptions({"bonf", "holm"})],
     }
 
-    def __init__(self, score_func=f_classif, *, alpha=5e-2):
+    def __init__(self, score_func=f_classif, *, alpha=5e-2, fwe_control="bonf"):
         super().__init__(score_func=score_func)
         self.alpha = alpha
+        self.fwe_control = fwe_control
 
     def _get_support_mask(self):
         check_is_fitted(self)
 
-        return self.pvalues_ < self.alpha / len(self.pvalues_)
+        if self.fwe_control == "bonf":
+            return self.pvalues_ < self.alpha / len(self.pvalues_)
+
+        n_features = len(self.pvalues_)
+        order = np.argsort(self.pvalues_)
+        sorted_pvalues = self.pvalues_[order]
+        thresholds = float(self.alpha) / (n_features - np.arange(n_features))
+        reject = sorted_pvalues <= thresholds
+        if np.all(reject):
+            selected_sorted = np.ones(n_features, dtype=bool)
+        else:
+            first_false = np.argmax(~reject)
+            selected_sorted = np.zeros(n_features, dtype=bool)
+            selected_sorted[:first_false] = True
+        selected = np.zeros(n_features, dtype=bool)
+        selected[order] = selected_sorted
+        return selected
 
 
 ######################################################################

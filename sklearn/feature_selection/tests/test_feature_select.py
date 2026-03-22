@@ -27,6 +27,7 @@ from sklearn.feature_selection import (
     r_regression,
 )
 from sklearn.utils import safe_mask
+from sklearn.utils._param_validation import InvalidParameterError
 from sklearn.utils._testing import (
     _convert_container,
     assert_almost_equal,
@@ -732,6 +733,29 @@ def test_select_fwe_regression():
     gtruth[:5] = 1
     assert_array_equal(support[:5], np.ones((5,), dtype=bool))
     assert np.sum(support[5:] == 1) < 2
+
+
+def test_select_fwe_holm_support():
+    pvalues = np.array([0.001, 0.01, 0.02, 0.2])
+    scores = np.arange(pvalues.size, dtype=float)
+
+    def score_func(X, y):
+        return scores, pvalues
+
+    X = np.ones((5, pvalues.size))
+    y = np.zeros(5)
+
+    bonf = SelectFwe(score_func, alpha=0.05, fwe_control="bonf").fit(X, y)
+    holm = SelectFwe(score_func, alpha=0.05, fwe_control="holm").fit(X, y)
+
+    assert_array_equal(bonf.get_support(), np.array([True, True, False, False]))
+    assert_array_equal(holm.get_support(), np.array([True, True, True, False]))
+
+
+def test_select_fwe_invalid_fwe_control():
+    X, y = make_classification(n_samples=20, n_features=5, random_state=0)
+    with pytest.raises(InvalidParameterError, match="fwe_control"):
+        SelectFwe(fwe_control="invalid").fit(X, y)
 
 
 def test_selectkbest_tiebreaking():
