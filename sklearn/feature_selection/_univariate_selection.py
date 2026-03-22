@@ -905,10 +905,6 @@ class SelectFdr(_BaseFilter):
     alpha : float, default=5e-2
         The highest uncorrected p-value for features to keep.
 
-    fwe_control : {"bonf", "holm"}, default="bonf"
-        Family-wise error rate control method. Use "bonf" for Bonferroni
-        correction and "holm" for the Holm-Bonferroni method.
-
     Attributes
     ----------
     scores_ : array-like of shape (n_features,)
@@ -996,6 +992,10 @@ class SelectFwe(_BaseFilter):
 
     alpha : float, default=5e-2
         The highest uncorrected p-value for features to keep.
+
+    fwe_control : {"bonf", "holm"}, default="bonf"
+        Family-wise error rate control method. Use "bonf" for Bonferroni
+        correction and "holm" for the Holm-Bonferroni method.
 
     Attributes
     ----------
