@@ -1,0 +1,5 @@
+- Add an ``n_threads`` parameter to :class:`tree.DecisionTreeClassifier`,
+  :class:`tree.DecisionTreeRegressor`, :class:`tree.ExtraTreeClassifier`, and
+  :class:`tree.ExtraTreeRegressor` to control the number of OpenMP threads used
+  during fitting.
+  By :user:`aaronzuo`.
