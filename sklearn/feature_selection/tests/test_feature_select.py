@@ -752,6 +752,21 @@ def test_select_fwe_holm_support():
     assert_array_equal(holm.get_support(), np.array([True, True, True, False]))
 
 
+def test_select_fwe_holm_all_rejected():
+    pvalues = np.array([0.001, 0.002, 0.003])
+    scores = np.arange(pvalues.size, dtype=float)
+
+    def score_func(X, y):
+        return scores, pvalues
+
+    X = np.ones((5, pvalues.size))
+    y = np.zeros(5)
+
+    holm = SelectFwe(score_func, alpha=0.05, fwe_control="holm").fit(X, y)
+
+    assert_array_equal(holm.get_support(), np.array([True, True, True]))
+
+
 def test_select_fwe_invalid_fwe_control():
     X, y = make_classification(n_samples=20, n_features=5, random_state=0)
     with pytest.raises(InvalidParameterError, match="fwe_control"):
