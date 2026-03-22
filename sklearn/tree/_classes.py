@@ -795,9 +795,9 @@ class DecisionTreeClassifier(ClassifierMixin, BaseDecisionTree):
 
     n_threads : int, default=None
         Number of OpenMP threads to use for parts of the fitting procedure that
-        support OpenMP-based parallelism. ``None`` uses the default number of
-        threads (taking ``OMP_NUM_THREADS`` into account). ``n_threads=0`` is
-        invalid.
+        support OpenMP-based parallelism. If scikit-learn is built without
+        OpenMP support, this parameter has no effect and 1 thread is used.
+        ``n_threads=0`` is invalid.
 
     max_leaf_nodes : int, default=None
         Grow a tree with ``max_leaf_nodes`` in best-first fashion.
@@ -1219,9 +1219,9 @@ class DecisionTreeRegressor(RegressorMixin, BaseDecisionTree):
 
     n_threads : int, default=None
         Number of OpenMP threads to use for parts of the fitting procedure that
-        support OpenMP-based parallelism. ``None`` uses the default number of
-        threads (taking ``OMP_NUM_THREADS`` into account). ``n_threads=0`` is
-        invalid.
+        support OpenMP-based parallelism. If scikit-learn is built without
+        OpenMP support, this parameter has no effect and 1 thread is used.
+        ``n_threads=0`` is invalid.
 
     max_leaf_nodes : int, default=None
         Grow a tree with ``max_leaf_nodes`` in best-first fashion.
@@ -1563,9 +1563,9 @@ class ExtraTreeClassifier(DecisionTreeClassifier):
 
     n_threads : int, default=None
         Number of OpenMP threads to use for parts of the fitting procedure that
-        support OpenMP-based parallelism. ``None`` uses the default number of
-        threads (taking ``OMP_NUM_THREADS`` into account). ``n_threads=0`` is
-        invalid.
+        support OpenMP-based parallelism. If scikit-learn is built without
+        OpenMP support, this parameter has no effect and 1 thread is used.
+        ``n_threads=0`` is invalid.
 
     max_leaf_nodes : int, default=None
         Grow a tree with ``max_leaf_nodes`` in best-first fashion.
@@ -1869,9 +1869,9 @@ class ExtraTreeRegressor(DecisionTreeRegressor):
 
     n_threads : int, default=None
         Number of OpenMP threads to use for parts of the fitting procedure that
-        support OpenMP-based parallelism. ``None`` uses the default number of
-        threads (taking ``OMP_NUM_THREADS`` into account). ``n_threads=0`` is
-        invalid.
+        support OpenMP-based parallelism. If scikit-learn is built without
+        OpenMP support, this parameter has no effect and 1 thread is used.
+        ``n_threads=0`` is invalid.
 
     min_impurity_decrease : float, default=0.0
         A node will be split if this split induces a decrease of the impurity
