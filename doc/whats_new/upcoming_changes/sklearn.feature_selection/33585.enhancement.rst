@@ -1,0 +1,3 @@
+- Add ``fwe_control`` option to :class:`feature_selection.SelectFwe` to allow
+  Holm-Bonferroni family-wise error control in addition to Bonferroni.
+  By :user:`aaronzuo`.
