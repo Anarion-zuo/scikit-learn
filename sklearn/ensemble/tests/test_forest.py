@@ -119,6 +119,50 @@ CLF_CRITERIONS = ("gini", "log_loss")
 REG_CRITERIONS = ("squared_error", "absolute_error", "friedman_mse", "poisson")
 
 
+@pytest.mark.parametrize(
+    "Forest",
+    [
+        RandomForestClassifier,
+        ExtraTreesClassifier,
+        RandomForestRegressor,
+        ExtraTreesRegressor,
+    ],
+)
+def test_forest_n_threads_forwarded_to_trees(Forest):
+    if Forest in (RandomForestClassifier, ExtraTreesClassifier):
+        X, y = make_classification(n_samples=50, n_features=10, random_state=0)
+    else:
+        X, y = make_regression(n_samples=50, n_features=10, random_state=0)
+
+    est = Forest(n_estimators=3, n_jobs=1, random_state=0, n_threads=2).fit(X, y)
+    assert {tree.n_threads for tree in est.estimators_} == {2}
+
+
+def test_random_trees_embedding_n_threads_forwarded_to_trees():
+    X, _ = make_classification(n_samples=50, n_features=10, random_state=0)
+    est = RandomTreesEmbedding(n_estimators=3, n_jobs=1, random_state=0, n_threads=2)
+    est.fit(X)
+    assert {tree.n_threads for tree in est.estimators_} == {2}
+
+
+@pytest.mark.parametrize(
+    "Forest",
+    [
+        RandomForestClassifier,
+        ExtraTreesClassifier,
+        RandomForestRegressor,
+        ExtraTreesRegressor,
+        RandomTreesEmbedding,
+    ],
+)
+def test_forest_n_threads_zero_raises(Forest):
+    X, y = make_classification(n_samples=50, n_features=10, random_state=0)
+    if Forest is RandomTreesEmbedding:
+        y = None
+    with pytest.raises(ValueError, match="n_threads = 0 is invalid"):
+        Forest(n_estimators=1, n_jobs=1, random_state=0, n_threads=0).fit(X, y)
+
+
 @pytest.mark.parametrize("name", FOREST_CLASSIFIERS)
 def test_classification_toy(name):
     """Check classification on a toy dataset."""

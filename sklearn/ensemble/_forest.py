@@ -1309,6 +1309,12 @@ class RandomForestClassifier(ForestClassifier):
         context. ``-1`` means using all processors. See :term:`Glossary
         <n_jobs>` for more details.
 
+    n_threads : int, default=None
+        Number of OpenMP threads to use for parts of the tree fitting procedure
+        that support OpenMP-based parallelism. This parameter is forwarded to
+        the underlying tree estimators. If scikit-learn is built without OpenMP
+        support, this parameter has no effect and 1 thread is used.
+
     random_state : int, RandomState instance or None, default=None
         Controls both the randomness of the bootstrapping of the samples used
         when building trees (if ``bootstrap=True``) and the sampling of the
@@ -1513,7 +1519,6 @@ class RandomForestClassifier(ForestClassifier):
         ],
     }
     _parameter_constraints.pop("splitter")
-    _parameter_constraints.pop("n_threads")
 
     def __init__(
         self,
@@ -1530,6 +1535,7 @@ class RandomForestClassifier(ForestClassifier):
         bootstrap=True,
         oob_score=False,
         n_jobs=None,
+        n_threads=None,
         random_state=None,
         verbose=0,
         warm_start=False,
@@ -1551,6 +1557,7 @@ class RandomForestClassifier(ForestClassifier):
                 "max_leaf_nodes",
                 "min_impurity_decrease",
                 "random_state",
+                "n_threads",
                 "ccp_alpha",
                 "monotonic_cst",
             ),
@@ -1574,6 +1581,7 @@ class RandomForestClassifier(ForestClassifier):
         self.min_impurity_decrease = min_impurity_decrease
         self.monotonic_cst = monotonic_cst
         self.ccp_alpha = ccp_alpha
+        self.n_threads = n_threads
 
 
 class RandomForestRegressor(ForestRegressor):
@@ -1728,6 +1736,12 @@ class RandomForestRegressor(ForestRegressor):
         trees. ``None`` means 1 unless in a :obj:`joblib.parallel_backend`
         context. ``-1`` means using all processors. See :term:`Glossary
         <n_jobs>` for more details.
+
+    n_threads : int, default=None
+        Number of OpenMP threads to use for parts of the tree fitting procedure
+        that support OpenMP-based parallelism. This parameter is forwarded to
+        the underlying tree estimators. If scikit-learn is built without OpenMP
+        support, this parameter has no effect and 1 thread is used.
 
     random_state : int, RandomState instance or None, default=None
         Controls both the randomness of the bootstrapping of the samples used
@@ -1892,7 +1906,6 @@ class RandomForestRegressor(ForestRegressor):
         **DecisionTreeRegressor._parameter_constraints,
     }
     _parameter_constraints.pop("splitter")
-    _parameter_constraints.pop("n_threads")
 
     def __init__(
         self,
@@ -1909,6 +1922,7 @@ class RandomForestRegressor(ForestRegressor):
         bootstrap=True,
         oob_score=False,
         n_jobs=None,
+        n_threads=None,
         random_state=None,
         verbose=0,
         warm_start=False,
@@ -1929,6 +1943,7 @@ class RandomForestRegressor(ForestRegressor):
                 "max_leaf_nodes",
                 "min_impurity_decrease",
                 "random_state",
+                "n_threads",
                 "ccp_alpha",
                 "monotonic_cst",
             ),
@@ -1961,6 +1976,7 @@ class RandomForestRegressor(ForestRegressor):
         self.min_impurity_decrease = min_impurity_decrease
         self.ccp_alpha = ccp_alpha
         self.monotonic_cst = monotonic_cst
+        self.n_threads = n_threads
 
 
 class ExtraTreesClassifier(ForestClassifier):
@@ -2093,6 +2109,12 @@ class ExtraTreesClassifier(ForestClassifier):
         trees. ``None`` means 1 unless in a :obj:`joblib.parallel_backend`
         context. ``-1`` means using all processors. See :term:`Glossary
         <n_jobs>` for more details.
+
+    n_threads : int, default=None
+        Number of OpenMP threads to use for parts of the tree fitting procedure
+        that support OpenMP-based parallelism. This parameter is forwarded to
+        the underlying tree estimators. If scikit-learn is built without OpenMP
+        support, this parameter has no effect and 1 thread is used.
 
     random_state : int, RandomState instance or None, default=None
         Controls 3 sources of randomness:
@@ -2290,7 +2312,6 @@ class ExtraTreesClassifier(ForestClassifier):
         ],
     }
     _parameter_constraints.pop("splitter")
-    _parameter_constraints.pop("n_threads")
 
     def __init__(
         self,
@@ -2307,6 +2328,7 @@ class ExtraTreesClassifier(ForestClassifier):
         bootstrap=False,
         oob_score=False,
         n_jobs=None,
+        n_threads=None,
         random_state=None,
         verbose=0,
         warm_start=False,
@@ -2328,6 +2350,7 @@ class ExtraTreesClassifier(ForestClassifier):
                 "max_leaf_nodes",
                 "min_impurity_decrease",
                 "random_state",
+                "n_threads",
                 "ccp_alpha",
                 "monotonic_cst",
             ),
@@ -2351,6 +2374,7 @@ class ExtraTreesClassifier(ForestClassifier):
         self.min_impurity_decrease = min_impurity_decrease
         self.ccp_alpha = ccp_alpha
         self.monotonic_cst = monotonic_cst
+        self.n_threads = n_threads
 
 
 class ExtraTreesRegressor(ForestRegressor):
@@ -2496,6 +2520,12 @@ class ExtraTreesRegressor(ForestRegressor):
         trees. ``None`` means 1 unless in a :obj:`joblib.parallel_backend`
         context. ``-1`` means using all processors. See :term:`Glossary
         <n_jobs>` for more details.
+
+    n_threads : int, default=None
+        Number of OpenMP threads to use for parts of the tree fitting procedure
+        that support OpenMP-based parallelism. This parameter is forwarded to
+        the underlying tree estimators. If scikit-learn is built without OpenMP
+        support, this parameter has no effect and 1 thread is used.
 
     random_state : int, RandomState instance or None, default=None
         Controls 3 sources of randomness:
@@ -2648,7 +2678,6 @@ class ExtraTreesRegressor(ForestRegressor):
         **DecisionTreeRegressor._parameter_constraints,
     }
     _parameter_constraints.pop("splitter")
-    _parameter_constraints.pop("n_threads")
 
     def __init__(
         self,
@@ -2665,6 +2694,7 @@ class ExtraTreesRegressor(ForestRegressor):
         bootstrap=False,
         oob_score=False,
         n_jobs=None,
+        n_threads=None,
         random_state=None,
         verbose=0,
         warm_start=False,
@@ -2685,6 +2715,7 @@ class ExtraTreesRegressor(ForestRegressor):
                 "max_leaf_nodes",
                 "min_impurity_decrease",
                 "random_state",
+                "n_threads",
                 "ccp_alpha",
                 "monotonic_cst",
             ),
@@ -2717,6 +2748,7 @@ class ExtraTreesRegressor(ForestRegressor):
         self.min_impurity_decrease = min_impurity_decrease
         self.ccp_alpha = ccp_alpha
         self.monotonic_cst = monotonic_cst
+        self.n_threads = n_threads
 
 
 class RandomTreesEmbedding(TransformerMixin, BaseForest):
@@ -2818,6 +2850,12 @@ class RandomTreesEmbedding(TransformerMixin, BaseForest):
         context. ``-1`` means using all processors. See :term:`Glossary
         <n_jobs>` for more details.
 
+    n_threads : int, default=None
+        Number of OpenMP threads to use for parts of the tree fitting procedure
+        that support OpenMP-based parallelism. This parameter is forwarded to
+        the underlying tree estimators. If scikit-learn is built without OpenMP
+        support, this parameter has no effect and 1 thread is used.
+
     random_state : int, RandomState instance or None, default=None
         Controls the generation of the random `y` used to fit the trees
         and the draw of the splits for each feature at the trees' nodes.
@@ -2917,7 +2955,6 @@ class RandomTreesEmbedding(TransformerMixin, BaseForest):
         "ccp_alpha",
         "splitter",
         "monotonic_cst",
-        "n_threads",
     ):
         _parameter_constraints.pop(param)
 
@@ -2936,6 +2973,7 @@ class RandomTreesEmbedding(TransformerMixin, BaseForest):
         min_impurity_decrease=0.0,
         sparse_output=True,
         n_jobs=None,
+        n_threads=None,
         random_state=None,
         verbose=0,
         warm_start=False,
@@ -2953,6 +2991,7 @@ class RandomTreesEmbedding(TransformerMixin, BaseForest):
                 "max_leaf_nodes",
                 "min_impurity_decrease",
                 "random_state",
+                "n_threads",
             ),
             bootstrap=False,
             oob_score=False,
@@ -2970,6 +3009,7 @@ class RandomTreesEmbedding(TransformerMixin, BaseForest):
         self.max_leaf_nodes = max_leaf_nodes
         self.min_impurity_decrease = min_impurity_decrease
         self.sparse_output = sparse_output
+        self.n_threads = n_threads
 
     def _set_oob_score_and_attributes(self, X, y, scoring_function=None):
         raise NotImplementedError("OOB score not supported by tree embedding")

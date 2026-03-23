@@ -75,6 +75,38 @@ def test_raise_if_init_has_no_predict_proba():
         clf.fit(X, y)
 
 
+@pytest.mark.parametrize(
+    "GB",
+    [
+        GradientBoostingClassifier,
+        GradientBoostingRegressor,
+    ],
+)
+def test_gradient_boosting_n_threads_forwarded_to_trees(GB):
+    if GB is GradientBoostingClassifier:
+        X, y = make_classification(n_samples=100, n_features=10, random_state=0)
+    else:
+        X, y = make_regression(n_samples=100, n_features=10, random_state=0)
+
+    est = GB(n_estimators=3, random_state=0, n_threads=2).fit(X, y)
+    assert {tree.n_threads for tree in est.estimators_.ravel()} == {2}
+
+
+@pytest.mark.parametrize(
+    "GB",
+    [
+        GradientBoostingClassifier,
+        GradientBoostingRegressor,
+    ],
+)
+def test_gradient_boosting_n_threads_zero_raises(GB):
+    X, y = make_classification(n_samples=100, n_features=10, random_state=0)
+    if GB is GradientBoostingRegressor:
+        X, y = make_regression(n_samples=100, n_features=10, random_state=0)
+    with pytest.raises(ValueError, match="n_threads = 0 is invalid"):
+        GB(n_estimators=3, random_state=0, n_threads=0).fit(X, y)
+
+
 @pytest.mark.parametrize("loss", ("log_loss", "exponential"))
 def test_classification_toy(loss, global_random_seed):
     # Check classification on a toy dataset.

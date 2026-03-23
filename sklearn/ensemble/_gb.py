@@ -342,9 +342,9 @@ class VerboseReporter:
                 (est.n_estimators - (j + 1)) * (time() - self.start_time) / float(i + 1)
             )
             if remaining_time > 60:
-                remaining_time = "{0:.2f}m".format(remaining_time / 60.0)
+                remaining_time = f"{remaining_time / 60.0:.2f}m"
             else:
-                remaining_time = "{0:.2f}s".format(remaining_time)
+                remaining_time = f"{remaining_time:.2f}s"
             print(
                 self.verbose_fmt.format(
                     iter=j + 1,
@@ -378,7 +378,6 @@ class BaseGradientBoosting(BaseEnsemble, metaclass=ABCMeta):
     }
     _parameter_constraints.pop("splitter")
     _parameter_constraints.pop("monotonic_cst")
-    _parameter_constraints.pop("n_threads")
 
     @abstractmethod
     def __init__(
@@ -397,6 +396,7 @@ class BaseGradientBoosting(BaseEnsemble, metaclass=ABCMeta):
         max_features,
         ccp_alpha,
         random_state,
+        n_threads=None,
         alpha=0.9,
         verbose=0,
         max_leaf_nodes=None,
@@ -420,6 +420,7 @@ class BaseGradientBoosting(BaseEnsemble, metaclass=ABCMeta):
         self.ccp_alpha = ccp_alpha
         self.init = init
         self.random_state = random_state
+        self.n_threads = n_threads
         self.alpha = alpha
         self.verbose = verbose
         self.max_leaf_nodes = max_leaf_nodes
@@ -490,6 +491,7 @@ class BaseGradientBoosting(BaseEnsemble, metaclass=ABCMeta):
                 max_features=self.max_features,
                 max_leaf_nodes=self.max_leaf_nodes,
                 random_state=random_state,
+                n_threads=self.n_threads,
                 ccp_alpha=self.ccp_alpha,
             )
 
@@ -590,8 +592,8 @@ class BaseGradientBoosting(BaseEnsemble, metaclass=ABCMeta):
         total_n_estimators = self.n_estimators
         if total_n_estimators < self.estimators_.shape[0]:
             raise ValueError(
-                "resize with smaller n_estimators %d < %d"
-                % (total_n_estimators, self.estimators_[0])
+                f"resize with smaller n_estimators {total_n_estimators} < "
+                f"{self.estimators_.shape[0]}"
             )
 
         self.estimators_ = np.resize(
@@ -713,17 +715,16 @@ class BaseGradientBoosting(BaseEnsemble, metaclass=ABCMeta):
                 test_size=self.validation_fraction,
                 stratify=stratify,
             )
-            if is_classifier(self):
-                if self.n_classes_ != np.unique(y_train).shape[0]:
-                    # We choose to error here. The problem is that the init
-                    # estimator would be trained on y, which has some missing
-                    # classes now, so its predictions would not have the
-                    # correct shape.
-                    raise ValueError(
-                        "The training data after the early stopping split "
-                        "is missing some classes. Try using another random "
-                        "seed."
-                    )
+            if is_classifier(self) and self.n_classes_ != np.unique(y_train).shape[0]:
+                # We choose to error here. The problem is that the init
+                # estimator would be trained on y, which has some missing
+                # classes now, so its predictions would not have the
+                # correct shape.
+                raise ValueError(
+                    "The training data after the early stopping split "
+                    "is missing some classes. Try using another random "
+                    "seed."
+                )
         else:
             X_train, y_train, sample_weight_train = X, y, sample_weight
             X_val = y_val = sample_weight_val = None
@@ -747,8 +748,8 @@ class BaseGradientBoosting(BaseEnsemble, metaclass=ABCMeta):
                     self.init_.fit(X_train, y_train)
                 else:
                     msg = (
-                        "The initial estimator {} does not support sample "
-                        "weights.".format(self.init_.__class__.__name__)
+                        f"The initial estimator {self.init_.__class__.__name__} does "
+                        "not support sample weights."
                     )
                     try:
                         self.init_.fit(
@@ -785,9 +786,9 @@ class BaseGradientBoosting(BaseEnsemble, metaclass=ABCMeta):
             # invariant: warm_start = True
             if self.n_estimators < self.estimators_.shape[0]:
                 raise ValueError(
-                    "n_estimators=%d must be larger or equal to "
-                    "estimators_.shape[0]=%d when "
-                    "warm_start==True" % (self.n_estimators, self.estimators_.shape[0])
+                    f"n_estimators={self.n_estimators} must be larger or equal to "
+                    f"estimators_.shape[0]={self.estimators_.shape[0]} when "
+                    "warm_start==True"
                 )
             begin_at_stage = self.estimators_.shape[0]
             # The requirements of _raw_predict
@@ -1082,7 +1083,7 @@ class BaseGradientBoosting(BaseEnsemble, metaclass=ABCMeta):
             warnings.warn(
                 "Using recursion method with a non-constant init predictor "
                 "will lead to incorrect partial dependence values. "
-                "Got init=%s." % self.init,
+                f"Got init={self.init}.",
                 UserWarning,
             )
         grid = np.asarray(grid, dtype=DTYPE, order="C")
@@ -1271,6 +1272,12 @@ class GradientBoostingClassifier(ClassifierMixin, BaseGradientBoosting):
         validation set if `n_iter_no_change` is not None.
         Pass an int for reproducible output across multiple function calls.
         See :term:`Glossary <random_state>`.
+
+    n_threads : int, default=None
+        Number of OpenMP threads to use for parts of the tree fitting procedure
+        that support OpenMP-based parallelism. This parameter is forwarded to
+        the underlying tree estimators. If scikit-learn is built without OpenMP
+        support, this parameter has no effect and 1 thread is used.
 
     max_features : {'sqrt', 'log2'}, int or float, default=None
         The number of features to consider when looking for the best split:
@@ -1497,6 +1504,7 @@ class GradientBoostingClassifier(ClassifierMixin, BaseGradientBoosting):
         min_impurity_decrease=0.0,
         init=None,
         random_state=None,
+        n_threads=None,
         max_features=None,
         verbose=0,
         max_leaf_nodes=None,
@@ -1519,6 +1527,7 @@ class GradientBoostingClassifier(ClassifierMixin, BaseGradientBoosting):
             subsample=subsample,
             max_features=max_features,
             random_state=random_state,
+            n_threads=n_threads,
             verbose=verbose,
             max_leaf_nodes=max_leaf_nodes,
             min_impurity_decrease=min_impurity_decrease,
@@ -1553,9 +1562,9 @@ class GradientBoostingClassifier(ClassifierMixin, BaseGradientBoosting):
 
         if n_trim_classes < 2:
             raise ValueError(
-                "y contains %d class after sample_weight "
-                "trimmed classes with zero weights, while a "
-                "minimum of 2 classes are required." % n_trim_classes
+                f"y contains {n_trim_classes} class after sample_weight trimmed "
+                "classes with zero weights, while a minimum of 2 classes are "
+                "required."
             )
         return encoded_y
 
@@ -1750,7 +1759,7 @@ class GradientBoostingClassifier(ClassifierMixin, BaseGradientBoosting):
             raise
         except AttributeError as e:
             raise AttributeError(
-                "loss=%r does not support predict_proba" % self.loss
+                f"loss={self.loss!r} does not support predict_proba"
             ) from e
 
 
@@ -1883,6 +1892,12 @@ class GradientBoostingRegressor(RegressorMixin, BaseGradientBoosting):
         validation set if `n_iter_no_change` is not None.
         Pass an int for reproducible output across multiple function calls.
         See :term:`Glossary <random_state>`.
+
+    n_threads : int, default=None
+        Number of OpenMP threads to use for parts of the tree fitting procedure
+        that support OpenMP-based parallelism. This parameter is forwarded to
+        the underlying tree estimators. If scikit-learn is built without OpenMP
+        support, this parameter has no effect and 1 thread is used.
 
     max_features : {'sqrt', 'log2'}, int or float, default=None
         The number of features to consider when looking for the best split:
@@ -2102,6 +2117,7 @@ class GradientBoostingRegressor(RegressorMixin, BaseGradientBoosting):
         min_impurity_decrease=0.0,
         init=None,
         random_state=None,
+        n_threads=None,
         max_features=None,
         alpha=0.9,
         verbose=0,
@@ -2126,6 +2142,7 @@ class GradientBoostingRegressor(RegressorMixin, BaseGradientBoosting):
             max_features=max_features,
             min_impurity_decrease=min_impurity_decrease,
             random_state=random_state,
+            n_threads=n_threads,
             alpha=alpha,
             verbose=verbose,
             max_leaf_nodes=max_leaf_nodes,
